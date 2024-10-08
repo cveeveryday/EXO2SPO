@@ -14,7 +14,7 @@ Add-SPListColumn  -token $token  -siteName "Team Site"  -listName "PattysEmails"
 Add-SPListColumn  -token $token  -siteName "Team Site"  -listName "PattysEmails"  -ColumnName "messageid"  -ColumnType "Text"
 
 $list = Get-SPLists  -token $token  -siteName "Team Site"  -listName "PattysEmails"
-#>
+
 $folderId = (Get-MailFolder -accessToken $token -emailAddress "PattiF@zpzbx.onmicrosoft.com" -folderName "Inbox").id
 $emailsAll = Get-MailMessages -accessToken $token -emailAddress "PattiF@zpzbx.onmicrosoft.com"  -folderId $folderId -limit 0
 $emailsProcessed = @()
@@ -30,7 +30,19 @@ foreach ($email in $emailsAll) {
   
 
 
-  #$(ConvertFrom-Html -inputString $email.body.content)
 }
 
 Add-ObjectToSPList -token $token -siteName "Team Site" -listName "PattysEmails" -objects $emailsProcessed
+foreach ($email in $emailsProcessed) {
+  $email.messageId = Move-MailMessage -accessToken $token -emailAddress "PattiF@zpzbx.onmicrosoft.com" -folderName "Archive" -messageId $email.messageid
+  $email.messageId = Set-MailMessageAsRead -accessToken $token -emailAddress "PattiF@zpzbx.onmicrosoft.com" -messageId $email.messageid
+  $email.messageId
+}
+#>
+$folderId = (Get-MailFolder -accessToken $token -emailAddress "PattiF@zpzbx.onmicrosoft.com" -folderName "Archive").id
+$emailsAll = Get-MailMessages -accessToken $token -emailAddress "PattiF@zpzbx.onmicrosoft.com"  -folderId $folderId -limit 0
+foreach ($email in $emailsAll) {
+  $email.Id = Move-MailMessage -accessToken $token -emailAddress "PattiF@zpzbx.onmicrosoft.com" -folderName "Inbox" -messageId $email.id
+  #$email.messageId = Set-MailMessageAsRead -accessToken $token -emailAddress "PattiF@zpzbx.onmicrosoft.com" -messageId $email.messageid
+  $email.Id
+}
