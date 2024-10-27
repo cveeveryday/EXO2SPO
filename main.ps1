@@ -1,5 +1,6 @@
 Import-Module ..\EXOFunctions\exofunctions.psm1
 Import-Module ..\SPFunctions\spofunctions.psm1
+Import-Module ..\afterhoursService\ahservicefunctions.psm1
 
 .\variables.ps1
 
@@ -16,18 +17,34 @@ Add-SPListColumn -token $token  -siteName "afterhours"  -listName "PattysEmails"
 
 $list = Get-SPLists  -token $token  -siteName "afterhours"  -listName "PattysEmails"
 #$items = Get-SPListItems -accessToken $token -siteName "afterhours" -listName "PattysEmails" -ColumnName "Status" -filter "In Progress"
-#>
+
 
 New-SPListFromObject -token $token -siteName "afterhours" -listName "staffEdmonton" #-colunmns @("From","To","DateReceived","Subject","Body","isRead") 
-Update-SPListColumnName -token $token -siteName "afterhours" -listName "staffEdmonton" -OldColumnName "Title" -NewColumnName "Threshold"
+Update-SPListColumnName -token $token -siteName "afterhours" -listName "staffEdmonton" -OldColumnName "Title" -NewColumnName "PhoneNumber"
+Add-SPListColumn  -token $token  -siteName "afterhours"  -listName "staffEdmonton" -ColumnName "Threshold" -ColumnType "Number"
 Add-SPListColumn  -token $token  -siteName "afterhours"  -listName "staffEdmonton" -ColumnName "Frequency" -ColumnType "Number"
-Add-SPListColumn  -token $token  -siteName "afterhours"  -listName "staffEdmonton" -ColumnName "FirstName" -ColumnType "Text"
-Add-SPListColumn -token $token -siteName "afterhours" -listName "staffEdmonton" -ColumnName "LastName" -ColumnType "Text"
-Add-SPListColumn -token $token -siteName "afterhours" -listName "staffEdmonton" -ColumnName "PhoneNumber" -ColumnType "Text"
+Add-SPListColumn  -token $token  -siteName "afterhours"  -listName "staffEdmonton" -ColumnName "Employee" -ColumnType "Text"
 Add-SPListColumn -token $token -siteName "afterhours" -listName "staffEdmonton" -ColumnName "Enabled" -ColumnType "Boolean"
+#>
 
 $message = Get-OldestVoiceMailMessage -accessToken $token -emailAddress "PattiF@zpzbx.onmicrosoft.com"
-$message 
+if ($message) {
+  $onCallStaff = Get-SPListItems -accessToken $token -siteName "afterhours" -listName "staffEdmonton"
+  If ($onCallStaff)
+  {
+    $onCallStaffDetails = @()
+    $onCallStaff | ForEach-Object {
+      $onCallStaffDetails += (Get-SPListItem -accessToken $token -siteName "afterhours" -listName "staffEdmonton" -itemId $_.id).fields
+    }
+    $staffToCall = Get-onCallStaff -emailReceivedDate $message.receivedDateTime -oncallStaff $onCallStaffDetails
+    if ($staffToCall) {
+      $staffToCall | ForEach-Object {
+        Write-Host 'Calling ' $_.Employee ' with phone number ' $_.Title
+      }
+    }
+  }
+}
+
 
 <#
 $folderId = (Get-MailFolder -accessToken $token -emailAddress "PattiF@zpzbx.onmicrosoft.com" -folderName "Inbox").id
