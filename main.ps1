@@ -38,8 +38,26 @@ if ($message) {
     }
     $staffToCall = Get-onCallStaff -emailReceivedDate $message.receivedDateTime -oncallStaff $onCallStaffDetails
     if ($staffToCall) {
+      $token = $null
+      $params = @{
+        username = $afterhoursAppUser
+        password = $afterhoursAppPassword
+      }
+      $body = $params | ConvertTo-Json
+      $token = Invoke-RestMethod -Uri "https://lbf0tsr1-8080.use.devtunnels.ms/login" -method Post -ContentType "application/json" -Body $body -ErrorAction Stop
+      $token.access_token
+      $authHeader = @{
+        'Content-Type'='application/json'
+        'Authorization'="Bearer $($token.access_token)"
+      }
       $staffToCall | ForEach-Object {
         Write-Host 'Calling ' $_.Employee ' with phone number ' $_.Title
+        $params = @{
+          phone_number = $_.Title
+        }
+        $body = $params | ConvertTo-Json
+        Start-Sleep -Seconds (Get-Random -Minimum 2 -Maximum 6)
+        $response = Invoke-RestMethod -Uri "https://lbf0tsr1-8080.use.devtunnels.ms/outboundCall" -method Post -ContentType 'application/json' -Body $body  -Headers $authHeader
       }
     }
   }
